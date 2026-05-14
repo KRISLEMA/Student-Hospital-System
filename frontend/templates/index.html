@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Hospital Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+        }
+
+        [data-bs-theme="dark"] {
+            --bs-body-bg: #121212;
+            --bs-body-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+        }
+
+        body {
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        [data-bs-theme="dark"] body {
+            background-color: var(--bs-body-bg);
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            padding: 0.8rem 1rem;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+        }
+
+        [data-bs-theme="dark"] .card {
+            background-color: var(--card-bg);
+            color: #e0e0e0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+            border: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #198754, #157347);
+            border: none;
+        }
+
+        .nav-link.active {
+            font-weight: 600;
+            color: var(--primary-color) !important;
+        }
+
+        .dashboard-stat-card {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        #theme-toggle {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        #theme-toggle:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        [data-bs-theme="dark"] #theme-toggle:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .urgent-badge {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body data-bs-theme="light">
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="#" onclick="showView('home')">
+                <i class="bi bi-hospital"></i> UniHealth
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto" id="main-nav">
+                    <!-- Nav items populated by JS -->
+                </ul>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Theme Toggle -->
+                    <div id="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                        <i class="bi bi-sun-fill text-warning fs-5" id="theme-icon"></i>
+                    </div>
+
+                    <!-- Auth Buttons (Login/Register) -->
+                    <div id="nav-auth-buttons" class="d-flex gap-2">
+                        <button onclick="showView('login')" class="btn btn-outline-primary btn-sm px-3 rounded-pill">Login</button>
+                        <button onclick="showView('register')" class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm">Register</button>
+                    </div>
+
+                    <!-- User Info (Logged In) -->
+                    <div id="nav-user-info" class="d-none d-flex align-items-center gap-3">
+                        <div class="text-end d-none d-sm-block">
+                            <div id="user-display" class="small fw-bold text-dark"></div>
+                            <div id="user-role" class="text-muted small" style="font-size: 0.75rem;"></div>
+                        </div>
+                        <button onclick="logout()" class="btn btn-outline-danger btn-sm rounded-pill">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+<main class="container py-4">
+    <!-- Hero Section -->
+    <section id="view-home" class="py-5 text-center bg-white rounded shadow-sm border-0 position-relative overflow-hidden">
+        <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-5" style="z-index: 0;"></div>
+        <div class="container position-relative" style="z-index: 1;">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 mb-3 fw-semibold">Healthcare Reimagined</span>
+                    <h1 class="display-4 fw-bold mb-3 text-dark">Your Health, Our Priority</h1>
+                    <p class="lead text-secondary mb-4">Connect with university medical professionals instantly. Book appointments, access records, and stay healthy with UniHealth.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <button onclick="showView('login')" class="btn btn-primary btn-lg px-4 rounded-pill shadow">Book an Appointment</button>
+                        <button onclick="showView('register')" class="btn btn-outline-secondary btn-lg px-4 rounded-pill">Create Account</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-5 g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 bg-light-subtle">
+                        <div class="card-body">
+                            <div class="feature-icon bg-primary text-white rounded-3 mb-3 d-inline-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="bi bi-calendar-check fs-4"></i>
+                            </div>
+                            <h5 class="fw-bold">Easy Booking</h5>
+                            <p class="text-secondary small">Schedule visits with specific specialists in just a few clicks.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 bg-light-subtle">
+                        <div class="card-body">
+                            <div class="feature-icon bg-success text-white rounded-3 mb-3 d-inline-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="bi bi-file-medical fs-4"></i>
+                            </div>
+                            <h5 class="fw-bold">Digital Records</h5>
+                            <p class="text-secondary small">Secure access to your diagnosis, prescriptions, and history.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 bg-light-subtle">
+                        <div class="card-body">
+                            <div class="feature-icon bg-info text-white rounded-3 mb-3 d-inline-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                                <i class="bi bi-lightning-charge fs-4"></i>
+                            </div>
+                            <h5 class="fw-bold">Instant Notifications</h5>
+                            <p class="text-secondary small">Get real-time updates on your appointment status and updates.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Login View -->
+    <section id="view-login" class="d-none max-w-md mx-auto py-5">
+        <div class="card shadow border-0 overflow-hidden" style="border-radius: 1rem;">
+            <div class="card-header bg-primary text-white py-4 text-center">
+                <h3 class="fw-bold mb-0">Welcome Back</h3>
+                <p class="small mb-0 opacity-75">Sign in to manage your health</p>
+            </div>
+            <div class="card-body p-4">
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-person text-primary"></i></span>
+                            <input type="text" id="login-username" class="form-control border-0 bg-light" placeholder="Enter username" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-lock text-primary"></i></span>
+                            <input type="password" id="login-password" class="form-control border-0 bg-light" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-pill shadow-sm">Login</button>
+                </form>
+            </div>
+            <div class="card-footer bg-white border-0 text-center pb-4">
+                <p class="mb-0 text-secondary small">Don't have an account? <a href="#" onclick="showView('register')" class="text-primary text-decoration-none fw-bold">Register here</a></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Register View -->
+    <section id="view-register" class="d-none max-w-md mx-auto py-5">
+        <div class="card shadow border-0 overflow-hidden" style="border-radius: 1rem;">
+            <div class="card-header bg-success text-white py-4 text-center">
+                <h3 class="fw-bold mb-0">Create Account</h3>
+                <p class="small mb-0 opacity-75">Join our university healthcare community</p>
+            </div>
+            <div class="card-body p-4">
+                <form id="register-form">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-person-badge text-success"></i></span>
+                            <input type="text" id="register-fullname" class="form-control border-0 bg-light" placeholder="" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-person text-success"></i></span>
+                            <input type="text" id="register-username" class="form-control border-0 bg-light" placeholder="" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-envelope text-success"></i></span>
+                            <input type="email" id="register-email" class="form-control border-0 bg-light" placeholder="yourname@example.com" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Password (Min 6 characters)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-lock text-success"></i></span>
+                            <input type="password" id="register-password" class="form-control border-0 bg-light" placeholder="" minlength="6" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold rounded-pill shadow-sm">Register</button>
+                </form>
+            </div>
+            <div class="card-footer bg-white border-0 text-center pb-4">
+                <p class="mb-0 text-secondary small">Already have an account? <a href="#" onclick="showView('login')" class="text-success text-decoration-none fw-bold">Login here</a></p>
+            </div>
+        </div>
+    </section>
+    <!-- Student Dashboard -->
+    <section id="view-student-dashboard" class="d-none py-4">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h2 class="fw-bold mb-0">Student Dashboard</h2>
+                <p class="text-secondary small mb-0">Manage your health and appointments</p>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBook">
+                    <i class="bi bi-plus-circle me-2"></i>Book New Appointment
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Column: Stats and Notifications -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100 mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-bell text-primary me-2"></i>Notifications</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="student-notifications">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Main Content -->
+            <div class="col-lg-8">
+                <!-- Appointments Table -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>My Appointments</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Doctor</th>
+                                        <th>Specialization</th>
+                                        <th>Date/Time</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="student-appointments">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Medical Records -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white border-0 py-3">
+                                <h5 class="fw-bold mb-0"><i class="bi bi-file-earmark-medical text-success me-2"></i>Medical History</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush" id="student-records">
+                                    <!-- Populated by JS -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prescriptions -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white border-0 py-3">
+                                <h5 class="fw-bold mb-0"><i class="bi bi-capsule text-info me-2"></i>Prescriptions</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush" id="student-prescriptions">
+                                    <!-- Populated by JS -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Doctor Dashboard -->
+    <section id="view-doctor-dashboard" class="d-none py-4">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h2 class="fw-bold mb-0">Doctor Dashboard</h2>
+                <p class="text-secondary small mb-0">Review appointments and update records</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-person-lines-fill text-primary me-2"></i>Assigned Appointments</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Student</th>
+                                        <th>Date/Time</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctor-appointments">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-success me-2"></i>Recent Medical Records</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="doctor-recent-records">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm mb-4 sticky-top" style="top: 100px; z-index: 10;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-plus-square text-success me-2"></i>Add Record & Prescription</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="form-record" class="mb-4">
+                            <h6 class="fw-bold small text-uppercase text-muted mb-3">New Medical Record</h6>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Appointment ID</label>
+                                <input class="form-control form-control-sm border-0 bg-light" id="record-appointment-id" placeholder="Click 'Add Record' on appointment" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Diagnosis</label>
+                                <textarea class="form-control form-control-sm border-0 bg-light" id="record-diagnosis" rows="2" placeholder="Describe diagnosis" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Internal Notes</label>
+                                <textarea class="form-control form-control-sm border-0 bg-light" id="record-notes" rows="2" placeholder="Doctor's private notes"></textarea>
+                            </div>
+                            <button class="btn btn-success btn-sm w-100 rounded-pill shadow-sm" type="submit">Save Medical Record</button>
+                        </form>
+
+                        <hr class="my-4">
+
+                        <form id="form-prescription">
+                            <h6 class="fw-bold small text-uppercase text-muted mb-3">Issue Prescription</h6>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Record ID</label>
+                                <input class="form-control form-control-sm border-0 bg-light" id="presc-record-id" placeholder="Click 'Prescribe' on record" required>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-7">
+                                    <label class="form-label small fw-bold">Medication</label>
+                                    <input class="form-control form-control-sm border-0 bg-light" id="presc-medication" placeholder="Paracetamol" required>
+                                </div>
+                                <div class="col-5">
+                                    <label class="form-label small fw-bold">Dosage</label>
+                                    <input class="form-control form-control-sm border-0 bg-light" id="presc-dosage" placeholder="500mg" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Instructions</label>
+                                <textarea class="form-control form-control-sm border-0 bg-light" id="presc-instructions" rows="2" placeholder="Twice a day after meals"></textarea>
+                            </div>
+                            <button class="btn btn-info btn-sm w-100 rounded-pill shadow-sm text-white" type="submit">Issue Prescription</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Admin Dashboard -->
+    <section id="view-admin-dashboard" class="d-none py-4">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h2 class="fw-bold mb-0">Administrator Panel</h2>
+                <p class="text-secondary small mb-0">Hospital analytics and doctor management</p>
+            </div>
+            <div class="col-auto">
+                <a class="btn btn-outline-primary rounded-pill px-4" href="/admin/export/appointments">
+                    <i class="bi bi-download me-2"></i>Export CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4" id="admin-stats">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Appointment Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chart-appointments" style="height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-person-plus text-primary me-2"></i>Doctor Management</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="form-create-doctor" class="row g-3">
+                            <div class="col-12">
+                                <input class="form-control border-0 bg-light" id="doc-name" placeholder="Full Name" required>
+                            </div>
+                            <div class="col-12">
+                                <input type="email" class="form-control border-0 bg-light" id="doc-email" placeholder="Doctor Email (e.g. doctor@gmail.com)">
+                            </div>
+                            <div class="col-12">
+                                <select class="form-select border-0 bg-light" id="doc-spec" required>
+                                    <option value="" disabled selected>Select Specialization</option>
+                                    <option value="General Physician">General Physician</option>
+                                    <option value="Cardiologist">Cardiologist</option>
+                                    <option value="Dermatologist">Dermatologist</option>
+                                    <option value="Pediatrician">Pediatrician</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <input class="form-control border-0 bg-light" id="doc-availability" placeholder="Availability (e.g. Mon-Fri 9am-5pm)">
+                            </div>
+                            <div class="col-6">
+                                <input class="form-control border-0 bg-light" id="doc-username" placeholder="Username" required>
+                            </div>
+                            <div class="col-6">
+                                <input type="password" class="form-control border-0 bg-light" id="doc-password" placeholder="Password" required>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary w-100 rounded-pill shadow-sm" type="submit">Create Doctor Account</button>
+                            </div>
+                        </form>
+                        <hr class="my-4">
+                        <h6 class="fw-bold small text-uppercase text-muted mb-3">Current Medical Roster</h6>
+                        <ul class="list-group list-group-flush" id="admin-doctors">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Edit Doctor Modal -->
+    <div class="modal fade" id="modalEditDoctor" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Doctor Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="form-edit-doctor">
+                        <input type="hidden" id="edit-doc-id">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Full Name</label>
+                            <input class="form-control border-0 bg-light" id="edit-doc-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Specialization</label>
+                            <select class="form-select border-0 bg-light" id="edit-doc-spec" required>
+                                <option value="General Physician">General Physician</option>
+                                <option value="Cardiologist">Cardiologist</option>
+                                <option value="Dermatologist">Dermatologist</option>
+                                <option value="Pediatrician">Pediatrician</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Availability</label>
+                            <input class="form-control border-0 bg-light" id="edit-doc-availability">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Username</label>
+                            <input class="form-control border-0 bg-light" id="edit-doc-username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">New Password (leave blank to keep current)</label>
+                            <input class="form-control border-0 bg-light" id="edit-doc-password" type="password">
+                        </div>
+                        <button class="btn btn-primary w-100 rounded-pill shadow-sm" type="submit">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="modalBook" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Book Appointment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="book-form">
+            <div class="mb-2">
+                <label class="form-label">Specialization</label>
+                <select class="form-select" id="book-specialization" required>
+                    <option value="General Physician">General Physician</option>
+                    <option value="Cardiologist">Cardiologist</option>
+                    <option value="Dermatologist">Dermatologist</option>
+                    <option value="Pediatrician">Pediatrician</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control" id="book-date" required>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Time Slot</label>
+                <select class="form-select" id="book-time" required></select>
+            </div>
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="book-urgent">
+                    <label class="form-check-label">Mark as urgent</label>
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Reason</label>
+                <textarea class="form-control" id="book-reason"></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Book</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalTransfer" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Transfer Patient</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3">Select another doctor to transfer this patient to. The system will check availability for the original time slot.</p>
+        <form id="transfer-form">
+            <input type="hidden" id="transfer-appointment-id">
+            <div class="mb-3">
+                <label class="form-label fw-bold small">New Doctor</label>
+                <select class="form-select bg-light border-0" id="transfer-doctor-id" required>
+                    <option value="" disabled selected>Select a doctor</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold small">Brief Explanation for Transfer</label>
+                <textarea class="form-control bg-light border-0" id="transfer-reason" rows="3" placeholder="Explain why the student is being transferred..." required></textarea>
+            </div>
+            <button class="btn btn-primary w-100 rounded-pill shadow-sm" type="submit">Complete Transfer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
